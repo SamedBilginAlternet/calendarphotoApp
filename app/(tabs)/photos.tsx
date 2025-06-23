@@ -61,8 +61,8 @@ export default function PhotosScreen() {
 
   const deletePhoto = async (date: string, photoId: string) => {
     Alert.alert(
-      'Delete Photo',
-      'Are you sure you want to delete this photo?',
+      'Silmek istediğinize emin misiniz?',
+      'Bu fotoğrafı silmek istediğinize emin misiniz?',
       [
         { text: 'Cancel', style: 'cancel' },
         {

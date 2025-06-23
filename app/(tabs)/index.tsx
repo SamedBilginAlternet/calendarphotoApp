@@ -76,6 +76,7 @@ export default function CalendarScreen() {
     headerTitle: {
       fontSize: 28,
       fontFamily: 'DancingScript-Bold',
+      fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
     },

@@ -138,14 +138,14 @@ export default function CameraScreen() {
             Camera Permission Required
           </Text>
           <Text style={[styles.permissionText, { color: theme.colors.textSecondary }]}>
-            We need access to your camera to capture beautiful moments
+            Anılarınızı yakalamak için kamera izni vermeniz gerekiyor.
           </Text>
           <TouchableOpacity
             style={[styles.permissionButton, { backgroundColor: theme.colors.primary }]}
             onPress={requestPermission}
           >
             <Text style={styles.permissionButtonText}>
-              Grant Permission
+              İzin Ver
             </Text>
           </TouchableOpacity>
         </View>
@@ -177,15 +177,15 @@ export default function CameraScreen() {
         await PhotoService.savePhoto(today, photo.uri);
         
         Alert.alert(
-          'Photo Saved! 💕',
-          'Your beautiful moment has been captured',
+          'Fotoğraf kaydedildi! 💕',
+          'Anılarınız yakalandı',
           [
             {
-              text: 'View Calendar',
-              onPress: () => router.push('/(tabs)/'),
+              text: 'Takvimi Görüntüle',
+              onPress: () => router.push('/(tabs)/camera'),
             },
             {
-              text: 'Take Another',
+              text: 'Başka Bir anı Çek',
               style: 'default',
             },
           ]
@@ -213,7 +213,7 @@ export default function CameraScreen() {
         facing={facing}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Capture Today's Moment</Text>
+          <Text style={styles.headerTitle}>Bugünün anısını Yakala</Text>
         </View>
 
         <View style={styles.controls}>
