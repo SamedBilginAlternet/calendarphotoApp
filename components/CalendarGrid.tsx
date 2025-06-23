@@ -10,6 +10,8 @@ import Animated, {
   useAnimatedStyle, 
   withSpring,
 } from 'react-native-reanimated';
+import Carousel from 'react-native-reanimated-carousel';
+import { TextInput } from 'react-native';
 
 const { width } = Dimensions.get('window');
 const CELL_SIZE = (width - 80) / 7;
@@ -20,6 +22,8 @@ interface CalendarGridProps {
   onPhotoUpdate: () => void;
 }
 
+const emojiList = ['😍', '🥰', '😂', '😎', '😭', '❤️', '🎉', '🌟', '👍', '💖'];
+
 export const CalendarGrid: React.FC<CalendarGridProps> = ({ 
   currentDate, 
   photos, 
@@ -27,6 +31,12 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
 }) => {
   const { theme } = useContext(ThemeContext);
   const [selectedDate, setSelectedDate] = useState<{date: string, photos: PhotoItem[], displayDate: string} | null>(null);
+
+  // Slide modal state
+  const [photoModal, setPhotoModal] = useState<{visible: boolean, photos: PhotoItem[], index: number}>({visible: false, photos: [], index: 0});
+  const [note, setNote] = useState('');
+  const [emoji, setEmoji] = useState('');
+  const [editingNote, setEditingNote] = useState(false);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -151,6 +161,38 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       Alert.alert('Error', 'Failed to delete photo');
     }
   };
+
+  // Fotoğrafa tıklayınca slide modalı aç
+  const openPhotoModal = (photos: PhotoItem[], index: number) => {
+    setPhotoModal({ visible: true, photos, index });
+    setNote(photos[index]?.note || '');
+    setEmoji(photos[index]?.emoji || '');
+    setEditingNote(false);
+  };
+
+  // Not ve emoji kaydet
+  const saveNoteAndEmoji = async () => {
+    if (!selectedDate) return;
+    const photo = photoModal.photos[photoModal.index];
+    await PhotoService.updatePhotoNoteAndEmoji(selectedDate.date, photo.id, note, emoji);
+    // Güncel fotoğrafları al
+    const updatedPhotos = await PhotoService.getPhotosForDate(selectedDate.date);
+    // Şu anki fotoğrafın yeni index'ini bul
+    const newIndex = updatedPhotos.findIndex(p => p.id === photo.id);
+    setPhotoModal(pm => ({
+      ...pm,
+      photos: updatedPhotos,
+      index: newIndex !== -1 ? newIndex : 0,
+    }));
+    setSelectedDate({
+      ...selectedDate,
+      photos: updatedPhotos
+    });
+    setEditingNote(false);
+  };
+
+  // Slide modalı kapatınca gün modalı açık kalır
+  const closePhotoModal = () => setPhotoModal({ ...photoModal, visible: false });
 
   const days = getDaysInMonth(currentDate);
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -458,8 +500,13 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 </View>
               ) : (
                 <View style={styles.photosGrid}>
-                  {selectedDate?.photos.map((photo) => (
-                    <View key={photo.id} style={styles.photoItem}>
+                  {selectedDate?.photos.map((photo, idx) => (
+                    <TouchableOpacity
+                      key={photo.id}
+                      style={styles.photoItem}
+                      onPress={() => openPhotoModal(selectedDate.photos, idx)}
+                      activeOpacity={0.85}
+                    >
                       <Image source={{ uri: photo.uri }} style={styles.modalPhotoImage} />
                       <View style={styles.photoActions}>
                         <Text style={styles.photoTime}>
@@ -475,7 +522,12 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                           <Trash2 size={18} color={theme.colors.textSecondary} />
                         </TouchableOpacity>
                       </View>
-                    </View>
+                      {(photo.note || photo.emoji) && (
+                        <View style={{ position: 'absolute', left: 8, top: 8, backgroundColor: theme.colors.primary, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
+                          <Text style={{ color: 'white', fontSize: 12 }}>{photo.emoji} {photo.note ? 'Not' : ''}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
                   ))}
                 </View>
               )}
@@ -496,6 +548,78 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* SLIDE MODAL: Fotoğrafa tıklayınca açılır */}
+      <Modal
+        visible={photoModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closePhotoModal}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,1)', // Tam siyah arka plan
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          {photoModal.photos.length > 0 && (
+            <>
+              <Carousel
+                width={width}
+                height={width * 1.3}
+                data={photoModal.photos}
+                defaultIndex={photoModal.index}
+                onSnapToItem={i => {
+                  setPhotoModal(pm => ({ ...pm, index: i }));
+                  const newPhoto = photoModal.photos[i];
+                  setNote(newPhoto?.note || '');
+                  setEmoji(newPhoto?.emoji || '');
+                  setEditingNote(false);
+                }}
+                renderItem={({ item }) => (
+                  <Image
+                    source={{ uri: item.uri }}
+                    style={{
+                      width: width,
+                      height: width * 1.3,
+                      resizeMode: 'cover',
+                      borderRadius: 0,
+                      backgroundColor: '#222'
+                    }}
+                  />
+                )}
+                loop={false}
+              />
+              <TouchableOpacity
+                style={{ position: 'absolute', top: 40, right: 20, zIndex: 2, padding: 8 }}
+                onPress={closePhotoModal}
+              >
+                <X size={32} color="white" />
+              </TouchableOpacity>
+              <View style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: 'rgba(0,0,0,0)', // Alt kısımda siyahlık yok
+                padding: 20,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+              }}>
+                <Text style={{
+                  fontSize: 40,
+                  textAlign: 'center',
+                  marginBottom: 8,
+                  color: 'white'
+                }}>
+                  {photoModal.photos[photoModal.index]?.emoji || ''}
+                </Text>
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
     </>
   );
 };
+

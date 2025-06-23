@@ -3,12 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PHOTOS_KEY = 'love_calendar_photos';
 
 export interface PhotoItem {
+  note: string;
+  emoji: string;
   id: string;
   uri: string;
   timestamp: number;
 }
 
 export class PhotoService {
+  static updatePhotoNoteAndEmoji(date: string, id: string, note: string, emoji: string) {
+    throw new Error('Method not implemented.');
+  }
   static async savePhoto(date: string, uri: string): Promise<void> {
     try {
       const existingPhotos = await this.getAllPhotos();
@@ -20,6 +25,8 @@ export class PhotoService {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         uri,
         timestamp: Date.now(),
+        note: '',
+        emoji: ''
       };
       
       existingPhotos[date].push(newPhoto);
